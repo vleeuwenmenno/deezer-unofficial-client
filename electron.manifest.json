@@ -1,0 +1,39 @@
+{
+  "executable": "Deezer_Client",
+  "splashscreen": {
+    "imageFile": "wwwroot/img/logo-full.png",
+    "transparant": true
+  },
+  "name": "Deezer",
+  "author": "",
+  "singleInstance": true,
+  "environment": "Production",
+  "build": {
+    "appId": "com.github.vleeuwenmenno.deezerunofficialclient",
+    "productName": "Deezer - Unofficial Client",
+    "copyright": "Copyright © 2020",
+    "buildVersion": "1.0.2",
+    "compression": "maximum",
+    "directories": {
+      "output": "../../../bin/Desktop"
+    },
+    "win": {
+      "icon": "../../../wwwroot/img/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "./bin",
+        "to": "bin",
+        "filter": [ "**/*" ]
+      }
+    ],
+    "files": [
+      {
+        "from": "./ElectronHostHook/node_modules",
+        "to": "ElectronHostHook/node_modules",
+        "filter": [ "**/*" ]
+      },
+      "**/*"
+    ]
+  }
+}
