@@ -3,7 +3,7 @@ import path from 'path';
 import InputManager from './input';
 import Settings from './settings';
 import Song from './model/Song';
-import { app, dialog, globalShortcut, Tray, Menu, BrowserWindow, ipcMain } from 'electron';
+import { app, dialog, globalShortcut, Tray, Menu, BrowserWindow, ipcMain, nativeImage } from 'electron';
 
 const RPC = new Client({ transport: 'ipc' });
 let tray:Tray;
@@ -93,7 +93,9 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
     const input = new InputManager(webContents);
 
     // Setup tray icon and media controls inside the tray menu
-    tray = new Tray(`${__dirname}/view/icon.png`)
+    const image = nativeImage.createFromPath(`${__dirname}/view/icon.png`)
+    image.setTemplateImage(true)
+    tray = new Tray(image)
     const contextMenu = Menu.buildFromTemplate([
         { 
             label: 'Show/Hide', type: 'normal', click: () => 
