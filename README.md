@@ -17,7 +17,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/vleeuwenmenno/deezer-unofficial-client">
-    <img src="wwwroot/img/logo-full.png" alt="Logo" height="80">
+    <img src="assets/icon.png" alt="Logo" height="80">
   </a>
 
   <h3 align="center">Deezer Community Client</h3>
