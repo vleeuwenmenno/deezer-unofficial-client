@@ -5,10 +5,6 @@
 *** Thanks again! Now go create something AMAZING! :D
 -->
 
-
-
-
-
 <!-- PROJECT SHIELDS -->
 <!--
 *** I'm using markdown "reference style" links for readability.
@@ -43,14 +39,7 @@
 ## About The Project
 
 I like sharing what music I listen. So I made this simple client that shares the music I currently play in Deezer. It stops sharing as soon as you pause your music or close the player.
-
-### Libraries & resources used
-
-* [Electron.NET](https://github.com/ElectronNET/Electron.NET)
-Used as UI framework for Linux, this is an important part of this application.
-
-* [Deezer](https://deezer.com/)
-Where you get your music to play from.
+Thanks to Braasileiro for the original version of the client!
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -67,15 +56,9 @@ Contributions are what make the open source community such an amazing place to b
 <!-- LICENSE -->
 ## License
 
-
-I'm not responsible for banned accounts, missing files, thermonuclear war, 
-or you getting fired because important business documents are missing.
-YOU are choosing to use this software and pointing fingers at me or any
-contributers of this project will bring you nowhere.
-
-Distributed under the MIT License. Please see `LICENSE.md` for more information.
-
-We are not affiliated, associated, authorized, endorsed by, or in any way officially connected with Microsoft, OneDrive, or any of its subsidiaries or its affiliates.<br /><br />The names Microsoft and OneDrive as well as related names, marks, emblems and images are registered trademarks of their respective owners.
+This project is a fork from https://github.com/Braasileiro/DeezerRPC
+It is licensed under the same license as the original: GNU General Public License v3.0
+https://github.com/Braasileiro/DeezerRPC/blob/master/LICENSE
 
 <!-- CONTACT -->
 ## Contact

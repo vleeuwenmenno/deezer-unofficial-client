@@ -1,0 +1,63 @@
+{
+  "name": "deezer-unofficial-client",
+  "version": "1.1.0",
+  "description": "Unofficial Deezer client with Discord rich presence support. (Fork based on Braasileiro/DeezerRPC)",
+  "main": "build/main.js",
+  "scripts": {
+    "tsc": "tsc",
+    "package-assets": "node package-assets.js",
+    "build": "npm run tsc && npm run package-assets",
+    "start": "npm run build && electron ./build/main.js",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist-win": "npm run build && electron-builder --win",
+    "dist-mac": "npm run build && electron-builder --mac",
+    "dist-linux": "npm run build && electron-builder --linux"
+  },
+  "build": {
+    "asar": "true",
+    "productName": "Deezer - Community UI",
+    "icon": "./assets/icon.png",
+    "files": [
+      "build/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.music"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Audio"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vleeuwenmenno/deezer-unofficial-client.git"
+  },
+  "keywords": [
+    "deezer",
+    "discord",
+    "rich",
+    "presence"
+  ],
+  "author": "Braasileiro & vleeuwenmenno",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/vleeuwenmenno/deezer-unofficial-client/issues"
+  },
+  "homepage": "https://github.com/vleeuwenmenno/deezer-unofficial-client#readme",
+  "devDependencies": {
+    "@types/discord-rpc": "^3.0.4",
+    "electron": "^9.0.4",
+    "electron-builder": "^22.7.0",
+    "shelljs": "^0.8.4",
+    "typescript": "^3.9.5"
+  },
+  "dependencies": {
+    "discord-rpc": "^3.1.1",
+    "moment": "^2.26.0"
+  }
+}
