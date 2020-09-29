@@ -7,6 +7,23 @@ import { app, dialog, globalShortcut, Tray, Menu, BrowserWindow, ipcMain, native
 
 const RPC = new Client({ transport: 'ipc' });
 let tray:Tray;
+let latestSong: Song;
+let clearedRPC: boolean;
+var pauseCheckerTimer = setInterval(pauseChecker, 60000);
+
+function pauseChecker() 
+{
+    if (!latestSong.listening)
+    {
+        RPC.clearActivity();
+        clearedRPC = true;
+    }
+}
+
+function abortPauseChecker() 
+{
+  clearInterval(pauseCheckerTimer);
+}
 
 // Create the main window and setup browser parameters
 function createMainWindow() 
@@ -75,7 +92,9 @@ function createWindow(visibility: boolean, preload?: string)
             show: visibility,
             title: 'Deezer - Community UI',
             webPreferences: {
-                preload: path.join(__dirname, preload)
+                preload: path.join(__dirname, preload),
+                nodeIntegration: true,
+                experimentalFeatures: true
             }
         });
     }
@@ -164,6 +183,7 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
 // When song changed, update Rich presence and tray tooltip
 ipcMain.on('song-changed', (event: any, song: Song) => 
 {
+    latestSong = song;
     if (!song.artist) 
     {
         song.artist = "Unknown Artist";
@@ -187,8 +207,9 @@ ipcMain.on('song-changed', (event: any, song: Song) =>
             instance: false,
         });
         tray.setToolTip(song.artist + " - " + song.name)
+        clearedRPC = false;
     } 
-    else 
+    else if (!clearedRPC && !song.listening)
     {
         RPC.setActivity({
             details: song.name,
@@ -199,7 +220,7 @@ ipcMain.on('song-changed', (event: any, song: Song) =>
             smallImageText: "Paused",
             instance: false,
         });
-        tray.setToolTip('Deezer - Community UI (Paused)')
+        tray.setToolTip('Deezer - Community UI (Paused)');
     }
 });
 
