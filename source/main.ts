@@ -3,12 +3,25 @@ import path from 'path';
 import InputManager from './input';
 import Settings from './settings';
 import Song from './model/Song';
-import { app, dialog, globalShortcut, Tray, Menu, BrowserWindow, ipcMain, nativeImage } from 'electron';
-
+import { app, dialog, globalShortcut, Tray, Menu, BrowserWindow, ipcMain, nativeImage, Notification } from 'electron';
+import settings from 'electron-settings';
+import { min } from 'moment';
+ 
+const appVersion = require('../package.json').version;
 const RPC = new Client({ transport: 'ipc' });
+
+let mw:BrowserWindow;
+
 let tray:Tray;
+
 let latestSong: Song;
+
+let latestSongIsFav:boolean;
 let clearedRPC: boolean;
+let normaliseAudio: boolean;
+let minimizeToTray:boolean;
+let closeToTray:boolean;
+
 var pauseCheckerTimer = setInterval(pauseChecker, 60000);
 
 function pauseChecker() 
@@ -66,11 +79,19 @@ function createMainWindow()
     mainWindow.on('close', (event) => 
     {
         event.preventDefault();
-        mainWindow.hide();
+
+        if (closeToTray)
+            mainWindow.hide();
+        else
+        {
+            app.exit();
+        }
     });
+
     mainWindow.on('minimize', function () 
     {
-        mainWindow.hide();
+        if (minimizeToTray)
+            mainWindow.hide();
     });
 
     // Splash
@@ -107,9 +128,11 @@ function createWindow(visibility: boolean, preload?: string)
     });
 }
 
-function registerShortcuts(webContents: Electron.WebContents, mainWindow: BrowserWindow) 
+async function registerShortcuts(webContents: Electron.WebContents, mainWindow: BrowserWindow) 
 {
     const input = new InputManager(webContents);
+    minimizeToTray = await settings.get('minimizeToTray') == true;
+    closeToTray = await settings.get('closeToTray') == true;
 
     // Setup tray icon and media controls inside the tray menu
     const image = nativeImage.createFromPath(`${__dirname}/view/icon.png`)
@@ -117,7 +140,7 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
     tray = new Tray(image)
     const contextMenu = Menu.buildFromTemplate([
         { 
-            label: 'Show/Hide', type: 'normal', click: () => 
+            label: 'Toggle', type: 'normal', click: () => 
             { 
                 if (mainWindow.isVisible())
                     mainWindow.hide();
@@ -126,24 +149,116 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
             } 
         },
         { type: 'separator' },
+        {
+            type: "submenu",
+            label: "Player",
+            submenu:
+            [
+                { 
+                    label: 'Play/Pause', type: 'normal', click: () => 
+                    { 
+                        input.space();
+                    } 
+                },
+                { 
+                    label: 'Next', type: 'normal', click: () => 
+                    { 
+                        input.shiftRight();
+                    }  
+                },
+                { 
+                    label: 'Previous', type: 'normal', click: () => 
+                    { 
+                        input.shiftLeft();
+                    }  
+                }
+            ]
+        },
         { 
-            label: 'Pause/Play', type: 'normal', click: () => 
-            { 
-                input.space();
+            label: 'Settings', type: 'submenu', 
+            submenu: 
+            [
+                { label: 'Hide to tray in minimize', checked: minimizeToTray, type: 'checkbox', click: async () => 
+                    {
+                        minimizeToTray = !minimizeToTray;
+                        await settings.set('minimizeToTray', minimizeToTray);
+                    } 
+                },
+                { label: 'Hide to tray in close', checked: closeToTray, type: 'checkbox', click: async () => 
+                    {
+                        closeToTray = !closeToTray;
+                        await settings.set('closeToTray', closeToTray);
+                    } 
+                },
+                { 
+                    label: 'Deezer preferences', 
+                    type: 'normal', 
+                    click: () => 
+                    {
+                        mainWindow.webContents.executeJavaScript("document.getElementsByClassName(\"topbar-profile\")[0].click()").then( (result) => {
+                            mainWindow.webContents.executeJavaScript("document.getElementsByClassName(\"account-link is-main animate-wobble\")[0].click()");
+                        });
+                        mainWindow.show();
+                        mainWindow.focus();
+                    } 
+                },
+                { type: 'separator' },
+                { 
+                    label: 'Audio volume', type: 'submenu', 
+                    submenu: 
+                    [
+                        { label: '0%', type: 'normal', click: () => {  mainWindow.webContents.executeJavaScript("dzPlayer.control.setVolume(0);"); } },
+                        { label: '25%', type: 'normal', click: () => {  mainWindow.webContents.executeJavaScript("dzPlayer.control.setVolume(0.25);"); } },
+                        { label: '50%', type: 'normal', click: () => {  mainWindow.webContents.executeJavaScript("dzPlayer.control.setVolume(0.5);"); } },
+                        { label: '75%', type: 'normal', click: () => {  mainWindow.webContents.executeJavaScript("dzPlayer.control.setVolume(0.75);"); } },
+                        { label: '100%', type: 'normal', click: () => {  mainWindow.webContents.executeJavaScript("dzPlayer.control.setVolume(1);"); } }
+                    ]
+                },
+                { 
+                    label: 'Toggle normalise audio', 
+                    type: 'normal', 
+                    click: () => 
+                    {
+                        normaliseAudio = !normaliseAudio;
+                        if (normaliseAudio)
+                            mainWindow.webContents.executeJavaScript("dzPlayer.control.setNormalized(1);");
+                        else
+                            mainWindow.webContents.executeJavaScript("dzPlayer.control.setNormalized(0);");
+                    } 
+                }
+            ]
+        },
+        { type: 'separator' },
+        { 
+            label: 'Favorite this song', 
+            type: 'normal',
+            click: () => 
+            {
+                mainWindow.webContents.sendInputEvent({keyCode: 'L', type: 'keyDown', modifiers: []});
+                try
+                {
+                    mainWindow.webContents.executeJavaScript(`document.getElementsByClassName("svg-icon-group-btn option-btn")[0].innerHTML.toString().includes("svg-icon svg-icon-love-outline is-active")`).then( (result) => {
+                        if (result == true)
+                        {
+                            new Notification({
+                                title: 'Song removed from favorites',
+                                body: latestSong.name + ' by ' + latestSong.artist + " has been removed from your favorites ..."
+                            }).show();
+                        }
+                        else
+                        {
+                            new Notification({
+                                title: 'Song added to favorites',
+                                body: latestSong.name + ' by ' + latestSong.artist + " has been added to your favorites ..."
+                            }).show();
+                        }
+                    });
+                }
+                catch (err)
+                { }
             } 
         },
-        { 
-            label: 'Next', type: 'normal', click: () => 
-            { 
-                input.shiftRight();
-            }  
-        },
-        { 
-            label: 'Previous', type: 'normal', click: () => 
-            { 
-                input.shiftLeft();
-            }  
-        },
+        { type: 'normal', label: 'App version '+appVersion+'', click: () => { require("electron").shell.openExternal("https://github.com/vleeuwenmenno/deezer-unofficial-client"); } },
         { type: 'separator' },
         { 
             label: 'Quit', type: 'normal', click: () => 
@@ -151,7 +266,7 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
                 mainWindow.destroy();
             } 
         }
-    ])
+    ]);
     
     // Hide and show mainwindow when double clicking tray icon
     tray.on('double-click', function (event) 
@@ -162,7 +277,7 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
             mainWindow.show();
     })
     
-    tray.setToolTip('Deezer - Community UI')
+    tray.setToolTip('No music played yet')
     tray.setContextMenu(contextMenu)
 
     // Setup global shortcuts for media controls
@@ -178,12 +293,18 @@ function registerShortcuts(webContents: Electron.WebContents, mainWindow: Browse
     {
         input.shiftRight();
     });
+    mw = mainWindow;
 }
 
 // When song changed, update Rich presence and tray tooltip
 ipcMain.on('song-changed', (event: any, song: Song) => 
 {
-    latestSong = song;
+    mw.webContents.executeJavaScript(`document.getElementsByClassName("svg-icon-group-btn option-btn")[0].innerHTML.toString().includes("svg-icon svg-icon-love-outline is-active")`).then( (result) => {
+        song.isFav = result;
+        console.log(song);
+        latestSong = song;         
+    });
+
     if (!song.artist) 
     {
         song.artist = "Unknown Artist";
@@ -206,7 +327,7 @@ ipcMain.on('song-changed', (event: any, song: Song) =>
             smallImageText: "Listening",
             instance: false,
         });
-        tray.setToolTip(song.artist + " - " + song.name)
+        tray.setToolTip(song.artist + " - " + song.name + ' ')
         clearedRPC = false;
     } 
     else if (!clearedRPC && !song.listening)
@@ -220,7 +341,7 @@ ipcMain.on('song-changed', (event: any, song: Song) =>
             smallImageText: "Paused",
             instance: false,
         });
-        tray.setToolTip('Deezer - Community UI (Paused)');
+        tray.setToolTip('Music paused ');
     }
 });
 
